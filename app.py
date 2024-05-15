@@ -1,27 +1,26 @@
-import os
-
-from flask import Flask, render_template, request
-import pickle
-
+from flask import Flask, render_template, request, jsonify
+from utils import model_predict
 app = Flask(__name__)
 
-with open("models/cv.pkl", "rb") as file:
-    cv = pickle.load(file)
-with open("models/clf.pkl", "rb") as file:
-    clf = pickle.load(file)
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
 def home():
     return render_template("index.html")
 
-@app.route("/predict", methods=["POST"])
+
+@app.route('/predict', methods=['POST'])
 def predict():
     email = request.form.get('content')
-    tokenized_email = cv.transform([email]) # X 
-    prediction = clf.predict(tokenized_email)
-    prediction = 1 if prediction == 1 else -1
+    prediction = model_predict(email)
     return render_template("index.html", prediction=prediction, email=email)
 
+# Create an API endpoint
+@app.route('/api/predict', methods=['POST'])
+def predict_api():
+    data = request.get_json(force=True)  # Get data posted as a json
+    email = data['content']
+    prediction = model_predict(email)
+    return jsonify({'prediction': prediction, 'email': email})  # Return prediction
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=True)
